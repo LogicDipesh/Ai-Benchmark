@@ -1,0 +1,21 @@
+id: debug_001_binary_search_off_by_one
+created: "2026-09-20"
+title: Binary Search Off By One
+prompt: |
+  Fix the bug in the following binary search implementation.
+  The function should return the index of `target` in a sorted array,
+  or -1 if the target is not found. The bug causes it to miss some
+  valid targets.
+broken_code: |
+  def binary_search(arr, target):
+      left, right = 0, len(arr) - 1
+      while left < right:
+          mid = (left + right) // 2
+          if arr[mid] == target:
+              return mid
+          elif arr[mid] < target:
+              left = mid + 1
+          else:
+              right = mid
+      return -1
+test_file: problems/debugging/test_debug_001.py

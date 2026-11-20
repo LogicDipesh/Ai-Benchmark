@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aibenchmark"
+version = "2.0.0"
+description = "AI-Benchmark v2: Personal free-tier LLM model selector"
+requires-python = ">=3.10"
+dependencies = [
+    "click>=8.0",
+    "pyyaml>=6.0",
+    "requests>=2.31",
+    # Runtime dependency, not just a dev tool: sandbox.py runs
+    # `python -m pytest` for every execution-based score, so a fresh
+    # install without pytest would score everything as an error.
+    "pytest>=8.0",
+]
+
+[project.scripts]
+bench = "aibenchmark.cli:bench"
+
+[tool.setuptools.packages.find]
+include = ["aibenchmark*"]
+exclude = ["problems*"]

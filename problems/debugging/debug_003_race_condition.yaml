@@ -1,0 +1,21 @@
+id: debug_003_race_condition
+created: "2026-09-20"
+title: Race Condition in Counter
+prompt: |
+  Fix the race condition in the following thread-safe counter.
+  The counter is not thread-safe despite the lock; identify and fix
+  the issue so concurrent increments produce correct results.
+broken_code: |
+  import threading
+
+  class Counter:
+      def __init__(self):
+          self._value = 0
+          self._lock = threading.Lock()
+
+      def increment(self):
+          self._lock.acquire()
+          current = self._value
+          self._value = current + 1
+          return self._value
+test_file: problems/debugging/test_debug_003.py

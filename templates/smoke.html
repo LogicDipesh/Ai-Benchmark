@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Live smoke test — Groq</h2>
+<p class="text-muted">This is a connectivity check only, not a bench score. It calls the existing Groq provider with a one-word prompt.</p>
+{% if error %}
+  <div class="alert alert-danger">Smoke test failed: {{ error }}</div>
+{% elif result %}
+  <div class="alert {{ 'alert-success' if result.success else 'alert-danger' }}">
+    <strong>{{ "Success" if result.success else "Failed" }}</strong> &middot; latency {{ result.latency_ms }} ms
+    {% if result.error_type %}&middot; error: {{ result.error_type }}{% endif %}
+  </div>
+  <p>Model reply: <code>{{ result.response }}</code></p>
+{% endif %}
+<a class="btn btn-outline-secondary" href="/">Back to dashboard</a>
+{% endblock %}

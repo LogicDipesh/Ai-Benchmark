@@ -1,0 +1,17 @@
+{
+  "run_id": 31,
+  "problem_id": "plan_002_monolith_migration",
+  "provider": "zhipu",
+  "model": "glm-4.7-flash",
+  "category": "thinking-planning",
+  "prompt": "Your company has a 5-year-old monolithic web application with a\nlarge, tangled PostgreSQL database. The team is considering\nmigrating to microservices. The application has grown to 10x\nthe original team size.\n\nDescribe a step-by-step migration approach. For each step,\nexplain:\n1. What to migrate first and why\n2. Key technical risks and how to mitigate them\n3. How to handle shared database concerns\n4. What monitoring and rollback strategy to use\n\nBe specific about implementation order and pitfalls to avoid.\n",
+  "response": "",
+  "finish_reason": null,
+  "usage": null,
+  "truncated": false,
+  "latency_ms": 47556,
+  "error_type": "error: HTTPError 429: {\"error\":{\"code\":\"1305\",\"message\":\"The service may be temporarily overloaded, please try again later\"}}",
+  "rubric": "Score 1.0 if the response provides a coherent step-by-step plan\naddressing all four points with specific technical details about\nrisks and mitigation. Score 0.7 if three points are well addressed\nwith good detail. Score 0.4 if two points are addressed. Score 0.1\nif only one point is addressed. Score 0.0 if incoherent or off-topic.\n",
+  "judge": null,
+  "captured_at_utc": "2026-11-02T10:18:19Z"
+}

@@ -1,0 +1,12 @@
+id: debug_002_mutable_default_arg
+created: "2026-09-20"
+title: Mutable Default Argument
+prompt: |
+  Fix the bug in the following function. The function should append
+  an item to a list and return the result, but the default argument
+  retains state between calls.
+broken_code: |
+  def add_item(item, lst=[]):
+      lst.append(item)
+      return lst
+test_file: problems/debugging/test_debug_002.py

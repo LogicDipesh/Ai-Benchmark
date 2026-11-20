@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Failure artifact</h2>
+<p><strong>{{ artifact.problem_id }}</strong> · {{ artifact.provider }} · {{ artifact.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</p>
+<p class="text-muted small">Read-only original Markdown content. This artifact has no embedded run ID.</p>
+<pre class="border rounded bg-white p-3" style="white-space: pre-wrap; overflow-wrap: anywhere">{{ content }}</pre>
+<a href="/evidence">Back to evidence</a>
+{% endblock %}

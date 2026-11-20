@@ -1,0 +1,36 @@
+{
+  "run_id": 31,
+  "problem_id": "plan_001_caching_strategy",
+  "provider": "zhipu",
+  "model": "glm-4.7-flash",
+  "category": "thinking-planning",
+  "prompt": "You are the lead engineer for a web service that serves 10,000\nrequests per second. Each request requires looking up user\npreferences from a database. The data is mostly read-heavy with\noccasional writes when users update their preferences.\n\nDesign a caching strategy to reduce database load. Discuss:\n1. What cache invalidation approach you would use\n2. How you would handle cache stampedes\n3. What happens when a cache node fails\n4. How you would monitor cache effectiveness\n\nBe specific about tradeoffs and implementation details.\n",
+  "response": "Given the scale of 10,000 RPS, a simple in-memory cache (like a local `HashMap`) in a single web server instance is insufficient. We need a distributed, in-memory caching layer with high availability. I would choose **Redis** (for its speed and rich data structures) or **Memcached** (for extreme raw throughput and simplicity).\n\nHere is the detailed caching strategy design.\n\n### 1. Cache Invalidation Approach\n\nFor a read-heavy system with occasional writes, the best trade-off between consistency and performance is **Time-To-Live (TTL) + Lazy Expiration**.\n\n**The Strategy:**\n*   **Write-Through (Initial):** When a user updates preferences, we perform a synchronous write to the database first. Only after the DB confirms success do we update the cache. This ensures the cache is always valid at the moment of the write.\n*   **Lazy Expiration (Reads):** We assign a TTL (e.g., 5 minutes) to cache entries. We do not actively delete keys when a write occurs.\n*   **Expiration:** When a request hits the cache and finds the key expired or missing, we treat it as a cache miss. We perform the DB lookup and write the result back to the cache with a fresh TTL.\n\n**Tradeoffs:**\n*   **Pros:** Extremely simple to implement. No complex locking or distributed transaction overhead. Handles high RPS well because reads don't block writes.\n*   **Cons (Staleness):** There is a window of time (the TTL) where the cache might serve outdated data. Given the \"occasional writes\" nature, a 5-minute TTL is usually acceptable for user preferences (e.g., theme settings, notification toggles) where data freshness isn't critical for real-time security.\n\n### 2. Handling Cache Stampedes\n\nA cache stampede occurs when a key expires and multiple threads/processes simultaneously try to regenerate the value, causing a massive spike in database load.\n\n**The Solution: \"Locking\" with a Short TTL**\n\nWe use a two-step process:\n1.  **The Check-and-Set (CAS) Lock:** When a process detects a cache miss, it attempts to write a special \"lock\" key (e.g., `lock:user:123`) to the cache with a very short TTL (e.g., 5 seconds).\n2.  **Competition:**\n    *   **Winner:** The process that successfully wrote the lock key proceeds to query the DB, populates the cache, and deletes the lock key.\n    *   **Losers:** Processes that find the lock key already present wait (sleep) for the lock to expire (or until they receive a notification via Pub/Sub), then re-attempt the lookup.\n\n**Implementation Details:**\n*   **Redlock (Redis):** For high availability, we might use Redlock to ensure the lock is held by only one node in a cluster.\n*   **Circuit Breaker:** If the DB takes too long to respond while holding the lock, the process should time out, delete the lock, and serve a stale value or an error to the user to prevent cascading failures.\n\n### 3. Handling Cache Node Failures\n\nIf a cache node (or the entire cluster) fails, the system must degrade gracefully rather than crashing.\n\n**The Strategy:**\n*   **Failover & Replication:** We run the cache cluster in an active-passive or active-active configuration with replication (e.g., Redis Sentinel or Redis Cluster).\n*   **Read-Write Splitting:**\n    *   **Reads:** If a read request hits a node that is down, the client library should automatically retry the request on a replica node.\n    *   **Writes:** If a write request hits a node that is down, the client should wait a short backoff period, then retry on another node.\n*   **Graceful Degradation:**\n    *   **Cache-Aside Pattern:** If the cache is down, the system falls back to querying the database directly.\n    *   **Alerting:** We must alert the DevOps team immediately. If the cache is down for too long, the database (which is not designed for 10k RPS) will likely crash under the load of the fallback traffic.\n\n### 4. Monitoring Cache Effectiveness\n\nTo ensure the cache is actually working and not causing more problems than it solves, we monitor specific metrics.\n\n**Key Metrics:**\n1.  **Cache Hit Ratio (CR):**\n    *   *Formula:* `Cache Hits / (Cache Hits + Cache Misses)`\n    *   *Target:* > 99% for read-heavy workloads.\n    *   *Why:* If this drops, we are wasting money on database resources.\n2.  **Cache Miss Rate:**\n    *   Monitor the rate of misses. A sudden spike in misses indicates the cache is too small, the TTL is too short, or the data access pattern has changed (hot keys).\n3.  **Eviction Rate:**\n    *   Monitor how many keys are being evicted due to memory pressure. If this is high, we need to increase cache capacity or optimize the data structure size (e.g., compress user preference JSON).\n4.  **Cache Stampede Frequency:**\n    *   Monitor the number of lock acquisitions. If this is high, the TTL might be too aggressive, or the load pattern is spiky (e.g., a marketing campaign causing a massive traffic spike).\n\n**Tools:**\n*   **Prometheus + Grafana:** For time-series data on Hit Ratio and Miss Rate.\n*   **Distributed Tracing (Jaeger/Zipkin):** To trace a request from the web server -> cache -> database. If a request spends 0ms in the cache, we know the cache isn't helping that specific path.",
+  "finish_reason": "stop",
+  "usage": {
+    "completion_tokens": 1205,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 115,
+    "prompt_tokens_details": {
+      "cached_tokens": 3
+    },
+    "total_tokens": 1320
+  },
+  "truncated": false,
+  "latency_ms": 70868,
+  "error_type": null,
+  "rubric": "Score 1.0 if the response addresses all four points with specific,\ntechnically sound reasoning about tradeities. Score 0.7 if three\npoints are well addressed. Score 0.4 if two points are addressed.\nScore 0.1 if only one point is addressed. Score 0.0 if the response\nis incoherent or ignores the prompt.\n",
+  "judge": {
+    "raw": "```json\n{\"score\": 1.0}\n```",
+    "score": 1.0,
+    "finish_reason": "stop",
+    "usage": {
+      "completion_tokens": 13,
+      "prompt_tokens": 1390,
+      "total_tokens": 1403
+    }
+  },
+  "captured_at_utc": "2026-11-02T10:19:32Z"
+}

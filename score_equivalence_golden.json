@@ -1,0 +1,134 @@
+{
+  "coding_correct": {
+    "error_type": null,
+    "gate": "not_applicable",
+    "score": 1.0,
+    "status": "passed"
+  },
+  "coding_partial": {
+    "error_type": null,
+    "gate": "not_applicable",
+    "score": 0.6666666666666666,
+    "status": "partial"
+  },
+  "coding_provider_failure": {
+    "error_type": "error: HTTPError 429: Rate limit exceeded",
+    "gate": "not_applicable",
+    "score": 0.0,
+    "status": "failed"
+  },
+  "coding_syntax_broken": {
+    "error_type": "execution_error",
+    "gate": "not_applicable",
+    "score": 0.0,
+    "status": "error"
+  },
+  "coding_truncated_pass": {
+    "error_type": "truncated_at_cap",
+    "gate": "not_applicable",
+    "score": 1.0,
+    "status": "passed"
+  },
+  "coding_wrong_name": {
+    "error_type": "execution_error",
+    "gate": "not_applicable",
+    "score": 0.0,
+    "status": "error"
+  },
+  "debugging_fixed": {
+    "error_type": null,
+    "gate": "not_applicable",
+    "score": 1.0,
+    "status": "passed"
+  },
+  "debugging_provider_failure": {
+    "error_type": "error: HTTPError 429: Rate limit exceeded",
+    "gate": "not_applicable",
+    "score": 0.0,
+    "status": "failed"
+  },
+  "debugging_still_broken": {
+    "error_type": null,
+    "gate": "not_applicable",
+    "score": 0.3333333333333333,
+    "status": "partial"
+  },
+  "sandbox_coding_correct": {
+    "error_type": null,
+    "gate": "not_applicable",
+    "score": 1.0,
+    "status": "passed"
+  },
+  "sandbox_coding_partial": {
+    "error_type": null,
+    "gate": "not_applicable",
+    "score": 0.6666666666666666,
+    "status": "partial"
+  },
+  "sandbox_coding_syntax_broken": {
+    "error_type": "execution_error",
+    "gate": "not_applicable",
+    "score": 0.0,
+    "status": "error"
+  },
+  "sandbox_mutant_gate_fail": {
+    "error_type": "reference_impl_failed",
+    "gate": "failed",
+    "score": 0.0,
+    "status": "failed"
+  },
+  "sandbox_mutant_good": {
+    "error_type": null,
+    "gate": "passed",
+    "score": 1.0,
+    "status": "passed"
+  },
+  "sandbox_mutant_partial": {
+    "error_type": null,
+    "gate": "passed",
+    "score": 0.5,
+    "status": "passed"
+  },
+  "testing_gate_fail": {
+    "error_type": "reference_impl_failed",
+    "gate": "failed",
+    "score": 0.0,
+    "status": "failed"
+  },
+  "testing_good_suite": {
+    "error_type": null,
+    "gate": "passed",
+    "score": 1.0,
+    "status": "passed"
+  },
+  "testing_no_tests": {
+    "error_type": "no_tests_ran",
+    "gate": "not_run",
+    "score": 0.0,
+    "status": "failed"
+  },
+  "testing_partial_kill": {
+    "error_type": null,
+    "gate": "passed",
+    "score": 0.5,
+    "status": "passed"
+  },
+  "testing_provider_failure": {
+    "error_type": "error: HTTPError 429: Rate limit exceeded",
+    "gate": "not_run",
+    "score": 0.0,
+    "status": "failed"
+  },
+  "testing_truncated_pass": {
+    "error_type": "truncated_at_cap",
+    "gate": "passed",
+    "score": 1.0,
+    "status": "passed"
+  },
+  "testing_wrong_import": {
+    "error_type": null,
+    "gate": "passed",
+    "score": 1.0,
+    "status": "passed"
+  }
+}

@@ -1,0 +1,49 @@
+id: testing_002_dedupe_preserve_order
+created: "2026-09-20"
+title: Write Tests for Dedupe Preserve Order
+prompt: |
+  Write comprehensive tests for the following function:
+
+  def dedupe_preserve_order(lst):
+      seen = set()
+      result = []
+      for item in lst:
+          if item not in seen:
+              seen.add(item)
+              result.append(item)
+      return result
+
+  The function removes duplicates from a list while preserving
+  the order of first occurrence. Write tests covering edge cases.
+  Output only the test code in a Python code block.
+reference_implementation: |
+  def dedupe_preserve_order(lst):
+      seen = set()
+      result = []
+      for item in lst:
+          if item not in seen:
+              seen.add(item)
+              result.append(item)
+      return result
+mutants:
+  mutant_001:
+    description: "Does not preserve order (uses sorted)"
+    code: |
+      def dedupe_preserve_order(lst):
+          return sorted(list(set(lst)))
+  mutant_002:
+    description: "Does not deduplicate"
+    code: |
+      def dedupe_preserve_order(lst):
+          return lst[:]
+  mutant_003:
+    description: "Preserves last occurrence instead of first"
+    code: |
+      def dedupe_preserve_order(lst):
+          seen = set()
+          result = []
+          for item in reversed(lst):
+              if item not in seen:
+                  seen.add(item)
+                  result.append(item)
+          return list(reversed(result))

@@ -1,0 +1,128 @@
+{
+  "title": "How scores work",
+  "subtitle": "The benchmark's scoring, selection, timing, and reporting rules in plain language.",
+  "dashboard_legends": {
+    "score": "Blended score: mean problem score across all attempts; request failures contribute 0.",
+    "capability": "Capability: mean score over valid model-output evaluations only. Reliability shows how often an attempt produced one.",
+    "latency": "Mean latency includes retry waits across attempted tasks. Total run wall time is measured separately.",
+    "evidence": "Test counts: problems in this group whose rows carry captured test counts, out of all problems. 'Not recorded' means the run predates evidence capture, or nothing was measured for those rows (a provider failure, or a plan score). Gate-failed testing rows show kills as 'not measured', never zero."
+  },
+  "sections": [
+    {
+      "id": "problem-scores",
+      "title": "01 · What one problem's score means",
+      "blocks": [
+        {
+          "heading": "Coding and debugging",
+          "text": "The score is the fraction of the problem's tests that the model's code passes in the sandbox. For example, passing 7 of 10 tests gives a score of 0.70."
+        },
+        {
+          "heading": "Testing",
+          "text": "The score is the fraction of mutants killed by the model-generated test suite. There is a strict reference gate: the suite must first pass against the known-correct reference implementation. If it fails that reference check, the whole problem scores 0; mutation scoring does not proceed."
+        },
+        {
+          "heading": "Thinking-planning",
+          "text": "A judge scores the response against a rubric. This is subjective rather than a deterministic test result. The judge is Gemini 3.5 Flash Lite, from a different model family than every benchmarked model."
+        }
+      ]
+    },
+    {
+      "id": "category-means",
+      "title": "02 · How category means are calculated",
+      "blocks": [
+        {
+          "text": "A category mean is the arithmetic average of its problem scores across all attempted problems. A request failure contributes 0 to the blended score because the pipeline received no usable answer. The overall blended score is weighted by the actual number of attempted problems—not the unweighted average of the four displayed category means."
+        }
+      ]
+    },
+    {
+      "id": "capability-reliability",
+      "title": "03 · Capability versus reliability",
+      "blocks": [
+        {
+          "text": "Capability is the average score among evaluations that were actually measured from model output. Request failures are excluded because there was no model output to evaluate. Reliability is the fraction of attempts that produced a valid evaluation."
+        },
+        {
+          "heading": "Run 23 GLM: a worked example",
+          "text": "GLM attempted 10 problems. Seven provider 429 errors produced no evaluation. Its three valid evaluations were coding = 1.000, testing = 0.667, and thinking-planning = 1.000; debugging had no valid evaluation. Their score sum is 2.667. Blended score = 2.667 ÷ 10 = 0.267, displayed as 0.27. Capability = 2.667 ÷ 3 = 0.889. Reliability = 3 ÷ 10 = 30%. The invariant holds: 0.889 × 30% = 0.267 (before rounding)."
+        },
+        {
+          "heading": "Why an old note said 0.29",
+          "text": "0.29 came from taking the unweighted mean of the four displayed category means: (0.33 + 0.00 + 0.33 + 0.50) ÷ 4. That is not the overall blended score because the categories have different numbers of attempted problems (3, 3, 2, and 2). The correct task-weighted overall blended score is 0.27."
+        },
+        {
+          "heading": "Run 26 (30 October 2026): Groq testing_002 worked example",
+          "text": "Groq answered both testing problems in Run 26, so reliability was 100%. testing_001 scored 1.00. testing_002 scored 0.00 because its generated suite had 13 passing reference checks and one failing assertion: it expected dedupe([None, None, 0, False, 0]) to return [None, 0, False], while the set-based reference returns [None, 0] because False == 0 and they hash equally. The strict reference gate failed, so mutant scoring did not run. Category capability was (1.00 + 0.00) ÷ 2 = 0.50; reliability remained 2 ÷ 2 = 100%. This is a verified example of an answer being returned but not meeting the problem contract."
+        }
+      ]
+    },
+    {
+      "id": "selection",
+      "title": "04 · How the current pick is selected",
+      "blocks": [
+        {
+          "text": "The current pick is the provider with the highest blended score. If blended scores tie, the dashboard selects the provider with the lowest mean latency. This is a pipeline-oriented objective: a model that does not answer stalls the work, so expected score per attempt is more useful than capability conditional on answering."
+        }
+      ]
+    },
+    {
+      "id": "latency-failures",
+      "title": "05 · Latency and failure classifications",
+      "blocks": [
+        {
+          "heading": "Latency",
+          "text": "Mean latency is calculated across attempted tasks and includes retry waits. Run wall time is a separate end-to-end duration."
+        },
+        {
+          "heading": "Request and evaluation-infrastructure failures",
+          "text": "Provider HTTP errors, connection errors, provider timeouts (including ReadTimeout), missing keys, retry-exhausted rows, unknown error types, and judge errors are request failures. They produce no valid evaluation: they are excluded from capability and reduce reliability. They contribute 0 to blended score."
+        },
+        {
+          "heading": "Model-output failures",
+          "text": "Truncated output, invalid code, an incorrect generated test suite, no tests ran, and sandbox timeouts are valid evaluations because the failure is measured from model output. They remain in capability and reliability; their measured score may be 0. A sandbox timeout means the model's code exceeded the 10-second execution limit. It is not the same as a provider timeout."
+        },
+        {
+          "heading": "Status badges",
+          "text": "The green passed badge means the stored row status is passed; the yellow partial badge means the stored status is partial; the red error badge means the stored status is error. Other status values are displayed as recorded. These badges summarize row status; they are not, by themselves, the capability/reliability classifier. The stored error type is interpreted using the report's validity allowlist. The GUI displays a readable label without changing the stored value."
+        }
+      ]
+    },
+    {
+      "id": "limitations",
+      "title": "06 · Limitations and historical comparability",
+      "blocks": [
+        {
+          "text": "There are currently only 2–3 problems per category. Category means are therefore noisy, and a single run can vary. These results are useful for comparing the tested tasks, not proof of broad model capability."
+        },
+        {
+          "text": "Thinking-planning (TP) scores are comparable only from Run 20 onward because the judge changed to Gemini 3.5 Flash Lite. Earlier TP results used a different judge."
+        },
+        {
+          "text": "Code evaluations carry two separate baselines: the stricter code-only prompt was introduced for Run 22; the code token cap changed to 8192 in Run 24. Run 23 itself used 4096-token caps. Do not attribute the 8192 cap to Run 23."
+        }
+      ]
+    },
+    {
+      "id": "not-stored",
+      "title": "07 · What this dashboard cannot show",
+      "blocks": [
+        {
+          "heading": "Test counts: recorded only for runs made after evidence capture",
+          "text": "Per-test pass counts exist only for runs made after evidence capture was installed (sandbox capture, database persistence, GUI display). For those runs, the run-detail 'Test counts' column shows the counts from the evaluation itself: '3 of 3 passed' for a direct test run, or the reference-gate result plus mutant kills for a testing run. For every earlier run, including runs 1-26, the column honestly shows 'not recorded': those counts were never stored, and the dashboard never reconstructs them from aggregate scores. A run-detail row whose attempt failed before evaluation (a provider failure) or whose score is a judge score rather than a test result (a thinking-planning plan) likewise shows 'not recorded', because nothing was measured."
+        },
+        {
+          "heading": "Gate failures: kills are not measured, never zero",
+          "text": "When a generated test suite fails the strict reference gate, the mutants are never run, so no kill count exists. The dashboard shows kills as 'not measured' for those rows, never zero: zero would claim every mutant survived, which was never tested. The gate counts themselves (how many reference checks passed and failed) are shown, because they were measured."
+        },
+        {
+          "heading": "Still not stored",
+          "text": "Token counts and complete per-attempt diagnostic records are still not stored: provider retries collapse into a single result row, and the database keeps no token usage. The GUI cannot reconstruct those missing details from aggregate rows. Separately generated failure-artifact Markdown files may preserve concrete code and test evidence for selected post-patch failures; the Evidence browser shows only files that actually exist. Artifacts have no run ID, so run-detail associations use problem, provider, and nearest filename timestamp as a disclosed heuristic. No missing evidence is invented."
+        },
+        {
+          "heading": "Test identities: recorded only for runs made after per-test capture",
+          "text": "Which tests passed and failed — the individual test names and outcomes — exists only for runs made after per-test capture was installed (sandbox capture, database persistence, GUI display). For those runs, the run-detail 'Tests' column opens the per-test detail for that row. For every earlier run, including runs 1-27, the detail view honestly shows 'not recorded': those identities were never stored, and the dashboard never reconstructs them from aggregate scores. A row whose pytest run produced no result lines (a collection error, or no tests collected) shows 'no tests ran' with its error type instead of an empty list presented as data. A plan row or an attempt that failed before evaluation likewise shows 'not recorded', because no pytest test identities exist for it."
+        }
+      ]
+    }
+  ]
+}

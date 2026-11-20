@@ -1,0 +1,17 @@
+id: coding_001_palindrome_linked_list
+created: "2026-09-20"
+title: Palindrome Linked List
+prompt: |
+  Implement a function `is_palindrome(head)` that checks if a singly
+  linked list is a palindrome. The linked list node is defined as:
+
+  class ListNode:
+      def __init__(self, val=0, next=None):
+          self.val = val
+          self.next = next
+
+  Return True if the linked list is a palindrome, False otherwise.
+
+  You must implement the solution in a file called solution.py.
+  Return only a single Python code block, no prose.
+test_file: problems/coding/test_coding_001.py

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI-Benchmark Dashboard</title>
+  <!-- Stock interface: Bootstrap 5 (MIT) and Chart.js, bundled locally
+       in static/ so the GUI works with no internet access. This file
+       and the other templates are the display layer only; every number
+       on screen comes from the project's history.db via app.py. -->
+  <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+  <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
+  <style>
+    body { background: #f8f9fa; }
+    .sidebar { min-height: 100vh; }
+    .score-bar { height: 8px; }
+    /* No width animation: a 1.00 bar must render full immediately,
+       not mid-transition in a screenshot or live demo. */
+    .progress-bar { transition: none; }
+  </style>
+</head>
+<body>
+<div class="container-fluid">
+  <div class="row">
+    <nav class="col-md-2 d-none d-md-block bg-dark sidebar py-4">
+      <h5 class="text-white px-3">AI-Benchmark</h5>
+      <p class="text-secondary px-3 small">Personal Model Selector</p>
+      <ul class="nav flex-column px-2">
+        <li class="nav-item"><a class="nav-link text-white" href="/">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link text-white" href="/runs">Runs</a></li>
+        <li class="nav-item"><a class="nav-link text-white" href="/evidence">Failure evidence</a></li>
+        <li class="nav-item"><a class="nav-link text-white" href="/trends">Trends</a></li>
+        <li class="nav-item"><a class="nav-link text-white" href="/methodology">How scores work</a></li>
+      </ul>
+      <div class="px-3 mt-4">
+        <form action="/smoke" method="post">
+          <button class="btn btn-outline-warning btn-sm w-100" type="submit">Live smoke test (Groq)</button>
+        </form>
+        <p class="text-secondary small mt-2">Connectivity check only — not a bench score. A full bench run is deliberately not a button here.</p>
+      </div>
+    </nav>
+    <main class="col-md-10 px-4 py-4">
+      {% block content %}{% endblock %}
+      <hr>
+      <p class="text-muted small">Scores come from history.db. <a href="/methodology">How scores work</a> explains the scoring, selection, latency, and failure rules. Failure labels are display mappings; stored values are unchanged.</p>
+      <p class="text-muted small">Interface version: GUI {{ gui_version }}.</p>
+    </main>
+  </div>
+</div>
+</body>
+</html>

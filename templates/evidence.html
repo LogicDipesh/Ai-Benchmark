@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Failure evidence</h2>
+<p class="text-muted">Read-only browser for Markdown failure artifacts found in <code>{{ artifacts_dir }}</code>. Artifacts exist only for runs after the failure-artifacts patch was installed; earlier runs may have no files.</p>
+<div class="alert alert-warning">Artifact filenames contain problem, provider, and timestamp, but no run ID. Links from run details use the nearest matching timestamp within 24 hours. Treat that association as a heuristic, not a guaranteed run identifier.</div>
+{% if artifacts %}
+<table class="table table-striped table-sm"><thead><tr><th>Problem</th><th>Provider</th><th>Artifact timestamp</th><th>Size</th><th></th></tr></thead><tbody>
+{% for a in artifacts %}<tr><td>{{ a.problem_id }}</td><td>{{ a.provider }}</td><td>{{ a.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</td><td>{{ a.size_bytes }} bytes</td><td><a href="/evidence/{{ a.filename | urlencode }}">Open artifact</a></td></tr>{% endfor %}
+</tbody></table>
+{% else %}<div class="alert alert-secondary">No matching failure artifacts were found. The GUI does not create or reconstruct artifacts.</div>{% endif %}
+<a href="/">Back to dashboard</a>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Trends</h2>
+<form method="get" class="mb-3">
+  <label class="form-label">Category</label>
+  <select name="category" class="form-select w-auto d-inline-block" onchange="this.form.submit()">
+    {% for cat in categories %}
+      <option value="{{ cat }}" {% if cat == category %}selected{% endif %}>{{ cat }}</option>
+    {% endfor %}
+  </select>
+</form>
+<canvas id="trendChart" height="80"></canvas>
+<script>
+  const chart = new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+      labels: {{ run_ids | tojson }},
+      datasets: [
+        {% for provider, points in series.items() %}
+        { label: {{ provider | tojson }}, data: {{ points | tojson }},
+          borderColor: {{ colors.get(provider, "#333") | tojson }}, fill: false, spanGaps: true },
+        {% endfor %}
+      ]
+    },
+    options: { scales: { y: { min: 0, max: 1 } },
+      plugins: { title: { display: true, text: {{ ("Mean score per run — " + category) | tojson }} } } }
+  });
+</script>
+<table class="table table-striped table-sm mt-4">
+  <thead><tr><th>Provider</th>{% for rid in run_ids %}<th>Run {{ rid }}</th>{% endfor %}</tr></thead>
+  <tbody>
+  {% for provider, points in series.items() %}
+    <tr><td>{{ provider }}</td>
+    {% for v in points %}<td>{{ v if v is not none else "—" }}</td>{% endfor %}</tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p class="text-muted small">A gap means that provider had no rows for that run/category. Scores are reported means and therefore include request failures — see the run pages for the per-problem breakdown. <a href="/methodology">How scores work</a>.</p>
+{% endblock %}

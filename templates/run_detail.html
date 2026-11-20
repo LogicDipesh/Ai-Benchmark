@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Run #{{ run.id }}</h2>
+<p class="text-muted">{{ run.timestamp | ist }} &middot; Notes: {{ run.notes or "—" }} &middot; {{ total_rows }} rows &middot; {{ request_failures_total }} request failures</p>
+{% for category, rows in tables %}
+  <h4 class="mt-4 text-capitalize">{{ category }}</h4>
+  <table class="table table-striped table-sm">
+    <thead><tr><th>Problem</th><th>Provider</th><th>Model</th><th>Score</th><th>Status</th><th>Error</th><th>Latency (ms)</th><th>Test counts</th><th>Tests</th><th>Evidence</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td>{{ r.problem_id }}</td>
+        <td>{{ r.provider }}</td>
+        <td class="text-break">{{ r.model }}</td>
+        <td><a href="/run/{{ run.id }}/detail/{{ category }}/{{ r.problem_id | urlencode }}/{{ r.provider | urlencode }}">{{ "%.3f"|format(r.score) }}</a></td>
+        <td>
+          {% if r.status == "passed" %}<span class="badge bg-success">passed</span>
+          {% elif r.status == "partial" %}<span class="badge bg-warning text-dark">partial</span>
+          {% elif r.status == "error" %}<span class="badge bg-danger">error</span>
+          {% else %}<span class="badge bg-secondary">{{ r.status }}</span>{% endif %}
+        </td>
+        <td class="text-break small">{% if r.error_type %}{% set label = display_error(r.error_type) %}{{ label }}{% if label != r.error_type %} <span class="text-muted">(stored: {{ r.error_type }})</span>{% endif %}{% else %}—{% endif %}</td>
+        <td>{{ r.latency_ms }}</td>
+        <td>
+          {% set ev = evidence_display(r.evidence) %}
+          {% if ev.state == "not_recorded" %}<span class="text-muted">{{ ev.text }}</span>{% else %}{{ ev.text }}{% endif %}
+        </td>
+        <td><a href="/run/{{ run.id }}/detail/{{ category }}/{{ r.problem_id | urlencode }}/{{ r.provider | urlencode }}">View tests</a></td>
+        <td>
+          {% set evidence = evidence_matches.get((r.problem_id, r.provider)) %}
+          {% if evidence %}<a href="/evidence/{{ evidence.filename | urlencode }}">View evidence</a>{% else %}<span class="text-muted">—</span>{% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="text-muted small mb-3"><a href="/methodology">How scores work</a> explains the problem scores and failure classifications. <strong>Test counts</strong> are the passed/collected tests captured during that evaluation itself; "not recorded" means the run predates evidence capture, or nothing was measured (a provider failure, or a plan score). Gate-failed testing rows show kills as "not measured", never zero. The <strong>Tests</strong> column opens the per-test detail for that row — which tests passed and failed as captured during that evaluation; rows without captured identities explain why instead of inventing names. The <strong>Evidence</strong> column is separate: it links to a failure-artifact file for that problem and provider, matched by nearest artifact filename timestamp (artifact files do not contain a run ID, so this association is heuristic, within 24 hours, not a guaranteed run foreign key). Older runs without artifacts simply show —.</p>
+  {% set breakdown = failure_breakdown.get(category, {}) %}
+  {% if breakdown %}
+  <div class="small border rounded bg-white p-2 mb-3"><strong>Failure classes:</strong> <span class="text-muted">(a combined error counts in both its class and truncation)</span>
+    Reference-gate {{ breakdown.reference_gate }} · Execution {{ breakdown.execution_error }} · Truncation {{ breakdown.truncation }} · Request failures {{ breakdown.request_failure }} · Other valid-output failures {{ breakdown.other_valid_output }}
+  </div>
+  {% endif %}
+  <p class="text-muted small mb-1"><strong>Capability &amp; reliability</strong> <a href="/methodology">How scores work</a></p>
+  <table class="table table-striped table-sm">
+    <thead><tr><th>Provider</th><th>Model</th><th>Capability</th><th>Reliability</th><th>Valid</th></tr></thead>
+    <tbody>
+    {% for c in cap_by_category[category] %}
+      <tr>
+        <td>{{ c.provider }}</td>
+        <td class="text-break">{{ c.model }}</td>
+        <td>{{ "%.2f"|format(c.capability) if c.capability is not none else "—" }}</td>
+        <td>{{ c.reliability }}%</td>
+        <td>{{ c.valid }}/{{ c.total }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% endfor %}
+<a class="btn btn-outline-secondary" href="/runs">Back to runs</a>
+{% endblock %}

@@ -1,0 +1,23 @@
+id: plan_002_monolith_migration
+created: "2026-09-20"
+title: Monolith to Microservices Migration
+prompt: |
+  Your company has a 5-year-old monolithic web application with a
+  large, tangled PostgreSQL database. The team is considering
+  migrating to microservices. The application has grown to 10x
+  the original team size.
+
+  Describe a step-by-step migration approach. For each step,
+  explain:
+  1. What to migrate first and why
+  2. Key technical risks and how to mitigate them
+  3. How to handle shared database concerns
+  4. What monitoring and rollback strategy to use
+
+  Be specific about implementation order and pitfalls to avoid.
+judge_rubric: |
+  Score 1.0 if the response provides a coherent step-by-step plan
+  addressing all four points with specific technical details about
+  risks and mitigation. Score 0.7 if three points are well addressed
+  with good detail. Score 0.4 if two points are addressed. Score 0.1
+  if only one point is addressed. Score 0.0 if incoherent or off-topic.

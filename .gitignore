@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Tests and caches
+.pytest_cache/
+test_history.db
+
+# Local secrets — API keys live in environment variables, never in files
+.env
+.env.*
+
+# Databases: history.db IS committed (sample data: 31 runs, 1,494 rows,
+# so the dashboard works out of the box). Backups and journals stay local.
+history.db.backup
+history.db.*
+*.db-journal
+
+# One-off bundles and local backups
+*.zip
+*.rar
+AI-Benchmark-GUI-Offline-Bundle/
+Backup/
+
+# Editor backup files
+*.tpcapture-backup
+*.northmini-backup
+*~
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Runs</h2>
+<p class="text-muted">Every run stored in history.db, newest first. Click a run to see its per-problem rows.</p>
+<table class="table table-striped">
+  <thead><tr><th>Run</th><th>Timestamp (IST)</th><th>Notes</th><th>Rows</th><th>Request failures</th></tr></thead>
+  <tbody>
+  {% for run in runs %}
+    <tr>
+      <td><a href="/run/{{ run.id }}">#{{ run.id }}</a></td>
+      <td>{{ run.timestamp | ist }}</td>
+      <td>{{ run.notes or "—" }}</td>
+      <td>{{ counts[run.id].rows }}</td>
+      <td>{{ counts[run.id].request_failures }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="5">No runs in history.db yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p class="text-muted small">Request failures are rows excluded from capability by the report validity rule. <a href="/methodology">How scores work</a>.</p>
+{% endblock %}
