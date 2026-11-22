@@ -4,6 +4,7 @@ import os
 import textwrap
 import tempfile
 import re
+import xml.etree.ElementTree as ET
 
 
 SANDBOX_TIMEOUT = 10
@@ -27,12 +28,25 @@ SANDBOX_TIMEOUT = 10
 #     getaddrinfo / gethostbyname raise OSError). Ordinary model code that
 #     tries `import requests`, `urllib`, or `socket` therefore fails fast
 #     instead of reaching the network.
+#   * Scores ONLY from pytest's own JUnit XML report (--junitxml),
+#     written to a private file outside the solution directory and
+#     parsed after the run. Printed text is never counted: a solution
+#     that prints fake "test_x.py::test_y PASSED" lines scores 0
+#     (2026-11-20: a fake-only solution scored 1.0 under the old
+#     stdout parser; tests/test_sandbox_scoring.py proves it now
+#     scores 0). Only <testcase> entries pytest itself collected
+#     can count.
 #
 # What it does NOT do (honest limit, not a bug to paper over):
 #   * This is NOT an OS-level security boundary. Model code runs as the same
 #     OS user, so deliberately malicious code could still read files outside
 #     the temporary directory, or shell out to an external tool such as curl
 #     (the socket patch only covers Python code in the pytest process).
+#   * A deliberately malicious program could also locate the JUnit XML
+#     file in the system temp dir and rewrite it after pytest exits
+#     (e.g. via a detached background process). That needs deliberate,
+#     targeted malice, not just printed lines; full protection against
+#     it needs a real container / VM, not a bigger Python patch.
 #   * If you need protection against deliberately malicious code, the next
 #     step is a real container / VM (e.g. Docker with --network=none), not
 #     a bigger Python patch. For the project's stated purpose -- scoring
@@ -158,51 +172,80 @@ def _write_sitecustomize(directory: str) -> None:
         f.write(_SITECUSTOMIZE)
 
 
-# Matches one pytest -v result line, e.g. "test_x.py::test_y PASSED [100%]".
-# Group 1 is the WHOLE node id (file + class + test + parameters),
-# captured greedily: the line must END with the status (plus an
-# optional reason in parentheses, padding, and an optional "[ xx%]"
-# bracket — real pytest -v pads the status column and annotates
-# skips, e.g. "SKIPPED (unconditional skip)   [100%]"), and that end
-# anchor is what lets a greedy id match disambiguate a status-like
-# word inside a parameter (e.g. test_v[hello world]) from the real
-# trailing status. This replaces the old ::\S+ matcher, which
-# silently dropped any result line whose parametrized id contained
-# whitespace.
-# Requiring "::" in the id avoids counting a test's own printed
-# output that happens to contain the word PASSED / FAILED on its own.
-_RESULT_LINE = re.compile(
-    r"^(.*::.*) (PASSED|FAILED|ERROR|SKIPPED|XFAIL|XPASS)"
-    r"( \([^)]*\))?\s*(\[.*\])?\s*$"
-)
+def _junit_node_id(classname: str, name: str) -> str:
+    """Reconstruct a pytest node id from a JUnit testcase's classname
+    and name, e.g. classname 'test_solution.TestFoo' + name 'test_x'
+    -> 'test_solution.py::TestFoo::test_x'. Module-level tests have
+    no class part: 'test_solution' + 'test_x'
+    -> 'test_solution.py::test_x'."""
+    parts = (classname or "").split(".")
+    module = parts[0] if parts else ""
+    if not module:
+        # Collection error: pytest writes a testcase with an empty
+        # classname and the module name, e.g. name 'test_solution'.
+        # The honest node id is just the file.
+        return name if name.endswith(".py") else f"{name}.py"
+    rest = parts[1:]
+    node = f"{module}.py"
+    if rest:
+        node += "::" + "::".join(rest)
+    node += "::" + name
+    return node
 
 
-def _parse_pytest_output(output: str):
-    """Return (passed, failed, errors, skipped, tests) from pytest -v
-    output. tests is the ordered list of {"name": full node id,
-    "status": lowercase outcome} for every matched result line, in
-    output order. XFAIL / XPASS are included in tests but NOT counted
-    in passed/failed/errors/skipped: they are expected-failure
-    markers, not ordinary passes. ONE matcher serves both counts and
-    identities, so the two can never disagree: tallies over tests
-    (excluding xfail/xpass) always equal the counts."""
+def _parse_junitxml(xml_path: str):
+    """Return (passed, failed, errors, skipped, tests) from pytest's
+    JUnit XML report. tests is the ordered list of {"name": node id,
+    "status": lowercase outcome} for every testcase pytest actually
+    collected and ran, in document order.
+
+    This is the ONLY source of scoring counts. Model output is never
+    parsed: a solution that prints fake 'x::y PASSED' lines cannot
+    create a <testcase> element, so it cannot score. XFAIL is included
+    in tests but NOT counted in passed/failed/errors/skipped. XPASS
+    is indistinguishable from a pass in JUnit XML (pytest itself
+    counts it as a pass there), so it counts as passed. ONE pass over
+    the testcases serves both counts and identities, so the two can
+    never disagree. A missing or unparsable file returns all zeros:
+    callers treat that as an error, never as a score.
+    """
     passed = failed = errors = skipped = 0
     tests = []
-    for line in output.splitlines():
-        m = _RESULT_LINE.match(line.strip())
-        if not m:
-            continue
-        name, status = m.group(1), m.group(2)
-        tests.append({"name": name, "status": status.lower()})
-        if status == "PASSED":
+    try:
+        tree = ET.parse(xml_path)
+    except (OSError, ET.ParseError):
+        return 0, 0, 0, 0, []
+    root = tree.getroot()
+    for case in root.iter("testcase"):
+        name = _junit_node_id(case.get("classname", ""), case.get("name", ""))
+        outcome = None
+        for child in case:
+            tag = child.tag
+            if tag == "failure":
+                outcome = "FAILED"
+            elif tag == "error":
+                outcome = "ERROR"
+            elif tag == "skipped":
+                # pytest marks expected failures as skipped with a
+                # type containing 'xfail'; they are listed, not counted.
+                if "xfail" in (child.get("type") or "").lower():
+                    outcome = "XFAIL"
+                else:
+                    outcome = "SKIPPED"
+            if outcome:
+                break
+        if outcome is None:
+            outcome = "PASSED"
+        tests.append({"name": name, "status": outcome.lower()})
+        if outcome == "PASSED":
             passed += 1
-        elif status == "FAILED":
+        elif outcome == "FAILED":
             failed += 1
-        elif status == "ERROR":
+        elif outcome == "ERROR":
             errors += 1
-        elif status == "SKIPPED":
+        elif outcome == "SKIPPED":
             skipped += 1
-        # XFAIL / XPASS: listed, not counted (see docstring).
+        # XFAIL: listed, not counted (see docstring).
     return passed, failed, errors, skipped, tests
 
 
@@ -216,19 +259,37 @@ def _run_pytest(cwd: str, test_arg: str, tmpdir: str, extra_dirs=()):
 
     Raises subprocess.TimeoutExpired on timeout, so callers can decide
     whether a timeout counts as a kill (mutants) or a timeout (direct tests).
+
+    Counts come ONLY from pytest's own JUnit XML report, written to a
+    private file outside the solution directory (tempfile.mkstemp in
+    the system temp dir) and deleted after parsing. Model output
+    printed to stdout is never counted: a solution that prints fake
+    'test_x.py::test_y PASSED' lines scores 0, because printed text
+    cannot create a <testcase> element. If the XML is missing or
+    unparsable (pytest crashed before writing it), counts are all
+    zero and callers record an error -- never a forged score.
     """
-    result = subprocess.run(
-        [sys.executable, "-m", "pytest", test_arg, "-v", "--tb=short",
-         "--no-header", "-p", "no:cacheprovider"],
-        cwd=cwd,
-        capture_output=True,
-        text=True,
-        timeout=SANDBOX_TIMEOUT,
-        env=_sandbox_env(tmpdir, extra_dirs),
-    )
-    output = result.stdout + result.stderr
-    passed, failed, errors, skipped, tests = _parse_pytest_output(output)
-    return result.returncode, output, passed, failed, errors, skipped, tests
+    fd, xml_path = tempfile.mkstemp(prefix="aibenchmark-junit-", suffix=".xml")
+    os.close(fd)
+    try:
+        result = subprocess.run(
+            [sys.executable, "-m", "pytest", test_arg, "-v", "--tb=short",
+             "--no-header", "-p", "no:cacheprovider",
+             f"--junitxml={xml_path}"],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            timeout=SANDBOX_TIMEOUT,
+            env=_sandbox_env(tmpdir, extra_dirs),
+        )
+        output = result.stdout + result.stderr
+        passed, failed, errors, skipped, tests = _parse_junitxml(xml_path)
+        return result.returncode, output, passed, failed, errors, skipped, tests
+    finally:
+        try:
+            os.remove(xml_path)
+        except OSError:
+            pass
 
 
 def _counts_evidence(passed, failed, errors, skipped):

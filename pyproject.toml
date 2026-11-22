@@ -11,6 +11,11 @@ dependencies = [
     "click>=8.0",
     "pyyaml>=6.0",
     "requests>=2.31",
+    # The dashboard (app.py) imports Flask, but it was never declared
+    # here -- the GUI only worked because Flask happened to be
+    # installed on the dev machine. Declared now so `pip install -e .`
+    # (and CI) actually provides it.
+    "flask>=3.0",
     # Runtime dependency, not just a dev tool: sandbox.py runs
     # `python -m pytest` for every execution-based score, so a fresh
     # install without pytest would score everything as an error.
